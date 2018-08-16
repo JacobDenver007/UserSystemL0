@@ -4,7 +4,7 @@ import (
 	"flag"
 	"fmt"
 
-	"github.com/UserSystemL0/user"
+	"github.com/JacobDenver007/UserSystemL0/user"
 	gin "gopkg.in/gin-gonic/gin.v1"
 )
 

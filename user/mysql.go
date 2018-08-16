@@ -7,8 +7,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/UserSystemL0/common"
-	"github.com/UserSystemL0/log"
+	"github.com/JacobDenver007/UserSystemL0/common"
+	"github.com/JacobDenver007/UserSystemL0/log"
 )
 
 type DB struct {

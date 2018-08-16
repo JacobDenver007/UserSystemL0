@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/UserSystemL0/common"
-	"github.com/UserSystemL0/utils"
+	"github.com/JacobDenver007/UserSystemL0/common"
+	"github.com/JacobDenver007/UserSystemL0/utils"
 	gin "gopkg.in/gin-gonic/gin.v1"
 )
 
