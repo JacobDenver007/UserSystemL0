@@ -8,7 +8,7 @@ package user
 var (
 	DBUser = "root"
 	DBPwd  = "Bochen@123"
-	DBHost = "http://127.0.0.1:3306"
+	DBHost = "127.0.0.1:3306"
 	DBName = "chain"
 )
 
