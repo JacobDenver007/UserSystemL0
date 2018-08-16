@@ -25,27 +25,33 @@ func SendSmsHandler(c *gin.Context) {
 		respone.ErrCode = common.ParamCode
 		respone.ErrMsg = err.Error()
 	} else {
-		if err := VailMobile(req.PhoneNum); err != nil {
+		if err := sendText(req); err != nil {
 			respone.ErrCode = common.ExecuteCode
 			respone.ErrMsg = err.Error()
 		} else {
-			code := MakeCode()
-			if err := VailCode(code); err != nil {
-				respone.ErrCode = common.ExecuteCode
-				respone.ErrMsg = err.Error()
-			} else {
-				if err := SendCode(req.PhoneNum, code); err != nil {
-					respone.ErrCode = common.ExecuteCode
-					respone.ErrMsg = err.Error()
-				} else {
-					respone.ErrCode = common.OKCode
-				}
-			}
+			respone.ErrCode = common.OKCode
 		}
 	}
 	c.JSON(http.StatusOK, respone)
 }
 
+func sendText(req *common.SendSmsRequest) error {
+	if err := VailMobile(req.PhoneNum); err != nil {
+		return err
+	}
+	code := MakeCode()
+	if err := VailCode(code); err != nil {
+		return err
+	}
+	if err := SendCode(req.PhoneNum, code); err != nil {
+		return err
+	}
+	if err := DBClient.InsertToken(req.PhoneNum, code); err != nil {
+		return err
+	}
+	return nil
+
+}
 func SignUpByMobileHandler(c *gin.Context) {
 	var respone common.APIRespone
 	req := &common.SignUpByMobileRequest{}

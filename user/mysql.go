@@ -109,3 +109,10 @@ func (db *DB) InsertUser(user *common.User) error {
 
 	return db.execSQL(sqlStr)
 }
+
+func (db *DB) InsertToken(phoneNum string, verificationCode string) error {
+	sqlStr := fmt.Sprintf("INSERT INTO t_tokeninfo(s_verificationcode, s_phonenum, i_timestamp) values('%s','%s',%d);",
+		verificationCode, phoneNum, time.Now().Unix())
+
+	return db.execSQL(sqlStr)
+}
