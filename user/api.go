@@ -31,31 +31,32 @@ func SendSmsHandler(c *gin.Context) {
 		respone.ErrCode = common.ParamCode
 		respone.ErrMsg = err.Error()
 	} else {
-		if err := sendText(req); err != nil {
+		if code, err := sendText(req); err != nil {
 			respone.ErrCode = common.ExecuteCode
 			respone.ErrMsg = err.Error()
 		} else {
+			respone.Data = code
 			respone.ErrCode = common.OKCode
 		}
 	}
 	c.JSON(http.StatusOK, respone)
 }
 
-func sendText(req *common.SendSmsRequest) error {
+func sendText(req *common.SendSmsRequest) (string, error) {
 	if err := VailMobile(req.PhoneNum); err != nil {
-		return err
+		return "", err
 	}
 	code := MakeCode()
 	if err := VailCode(code); err != nil {
-		return err
+		return "", err
 	}
 	if err := SendCode(req.PhoneNum, code); err != nil {
-		return err
+		return "", err
 	}
 	if err := DBClient.InsertToken(req.PhoneNum, code); err != nil {
-		return err
+		return "", err
 	}
-	return nil
+	return code, nil
 }
 
 func SignUpByMobileHandler(c *gin.Context) {
@@ -79,6 +80,7 @@ func SignUpByMobileHandler(c *gin.Context) {
 			session := getsessions(c)
 			session.Set(tokenString, token)
 
+			respone.Data = tokenString
 			respone.ErrCode = common.OKCode
 		}
 	}
