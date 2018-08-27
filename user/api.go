@@ -3,6 +3,7 @@ package user
 import (
 	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/JacobDenver007/UserSystemL0/common"
 	"github.com/JacobDenver007/UserSystemL0/utils"
@@ -12,7 +13,7 @@ import (
 // RegisterAPI 提供的API路由
 func RegisterAPI(router *gin.Engine) {
 	router.POST(fmt.Sprintf("/sendsms"), SendSmsHandler)
-	router.POST(fmt.Sprintf("/signupbymobile"), SignUpByMobileHandler)
+	router.POST(fmt.Sprintf("/signup"), SignUpByMobileHandler)
 	router.POST(fmt.Sprintf("/suspenduser"), SuspendUserHandler)
 	router.POST(fmt.Sprintf("/resetusername"), ResetUserNameHandler)
 	router.POST(fmt.Sprintf("/resetuserpwd"), ResetUserPwdHandler)
@@ -68,6 +69,16 @@ func SignUpByMobileHandler(c *gin.Context) {
 			respone.ErrCode = common.ExecuteCode
 			respone.ErrMsg = err.Error()
 		} else {
+			token := &Token{}
+			token.Phone = req.PhoneNum
+			token.SignInCode = req.VerificationCode
+			token.SignInTime = time.Now().Unix()
+			token.Expire = token.SignInTime + 300
+
+			tokenString := token.token()
+			session := getsessions(c)
+			session.Set(tokenString, token)
+
 			respone.ErrCode = common.OKCode
 		}
 	}
@@ -90,6 +101,7 @@ func createUser(req *common.SignUpByMobileRequest) error {
 	if err := DBClient.InsertUser(user); err != nil {
 		return err
 	}
+
 	return nil
 }
 

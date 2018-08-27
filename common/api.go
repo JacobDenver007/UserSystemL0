@@ -15,6 +15,8 @@ var (
 	RequestCode = 20002
 	//ExecuteCode Api execute error
 	ExecuteCode = 20003
+	//UnauthorizedCode Login error
+	UnauthorizedCode = 20004
 )
 
 //APIRespone Api respone data
