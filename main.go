@@ -13,6 +13,7 @@ func main() {
 
 	user.Init()
 	router := gin.Default()
+	router.Use(checklogged())
 	user.RegisterAPI(router)
 	if err := router.Run(fmt.Sprintf(":%d", *listenport)); err != nil {
 		panic(err)
