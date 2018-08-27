@@ -40,7 +40,6 @@ CREATE TABLE IF NOT EXISTS t_accoutninfo (
 	s_privatekey         longtext,
 	i_issuspended        tinyint(1) default 0,
 	i_isfrozen           tinyint(1) default 0,
-	UNIQUE KEY uniq_address (s_address),
-	INDEX uniq_privatekey (s_privatekey)
+	UNIQUE KEY uniq_address (s_address)
 );
 `
