@@ -80,16 +80,14 @@ func getsessions(c *gin.Context) *Session {
 
 // Token 用户
 type Token struct {
-	Phone      string `json:"phone"`
-	SignInCode string `json:"singincode"`
+	UserName   string `json:"username"`
 	SignInTime int64  `json:"signintime"`
 	Expire     int64  `json:"expire"`
 }
 
 func (t *Token) token() string {
 	h := sha256.New()
-	h.Write([]byte(t.Phone))
-	h.Write([]byte(t.SignInCode))
+	h.Write([]byte(t.UserName))
 	buf := make([]byte, 8)
 	binary.BigEndian.PutUint64(buf, uint64(t.SignInTime))
 	h.Write(buf)

@@ -82,7 +82,7 @@ func (db *DB) GetUserInfo(name string) (*common.User, error) {
 	row := db.sqlDB.QueryRow("SELECT s_username, s_pwd, s_phonenum, i_issuspended, i_auth, i_isapproved from t_userinfo where s_username=?;", name)
 	err := row.Scan(&user.UserName, &user.HashPwd, &user.PhoneNum, &user.IsSuspended, &user.Auth, &user.IsApproved)
 	if err == sql.ErrNoRows {
-		return nil, fmt.Errorf("user does not exist")
+		return nil, fmt.Errorf("用户不存在")
 	}
 	if err != nil {
 		return nil, err

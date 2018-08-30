@@ -44,6 +44,11 @@ type SignUpByMobileRequest struct {
 	VerificationCode string `json:"verificationcode"`
 }
 
+type SignInRequest struct {
+	UserName string `json:"username"`
+	Pwd      string `json:"pwd"`
+}
+
 type SuspendUser struct {
 	UserName string `json:"username"`
 	OPCode   int64  `json:"opcode"`
@@ -51,21 +56,17 @@ type SuspendUser struct {
 
 type ResetUserNameRequest struct {
 	OldUserName string `json:"oldusername"`
-	Pwd         string `json:"pwd"`
-	PhoneNum    string `json:"phonenum"`
 	NewUserName string `json:"newusername"`
 }
 
 type ResetUserPwdRequest struct {
 	UserName string `json:"username"`
 	OldPwd   string `json:"oldpwd"`
-	PhoneNum string `json:"phonenum"`
 	NewPwd   string `json:"newpwd"`
 }
 
 type ResetUserPhoneRequest struct {
 	UserName         string `json:"username"`
-	Pwd              string `json:"pwd"`
 	OldPhoneNum      string `json:"oldphonenum"`
 	NewPhoneNum      string `json:"newphonenum"`
 	VerificationCode string `json:"verificationcode"`
