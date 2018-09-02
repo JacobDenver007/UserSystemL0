@@ -8,7 +8,7 @@ import (
 	"github.com/bocheninc/L0/core/accounts"
 )
 
-func CreateAccount() string {
+func GernerateAccount() (string, string) {
 	k, err := crypto.GenerateKey()
 	if err != nil {
 		log.Fatal(err)
@@ -25,5 +25,5 @@ func CreateAccount() string {
 	address = accounts.PublicKeyToAddress(*k1.Public())
 	addressStr = "0x" + hex.EncodeToString(address[:])
 	DBClient.InsertAccount(addressStr, hexString)
-	return addressStr
+	return addressStr, hexString
 }

@@ -74,6 +74,12 @@ type ResetUserPhoneRequest struct {
 }
 
 type CreateAccountRequest struct {
+	PrivateKey string `json:"privatekey"`
+}
+
+type CreateAccountResponse struct {
+	Address string `json:"address"`
+	Hex     string `json:"hex"`
 }
 
 type SuspendAccountRequest struct {
