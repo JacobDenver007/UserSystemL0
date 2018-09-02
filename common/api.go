@@ -4,6 +4,7 @@ import (
 	"crypto/md5"
 	"encoding/hex"
 	"encoding/json"
+	"math/big"
 )
 
 var (
@@ -82,6 +83,13 @@ type SuspendAccountRequest struct {
 type FreezeAccountRequest struct {
 	Address string `json:"address"`
 	OPCode  int64  `json:"opcode"`
+}
+
+type SendTransactionRequest struct {
+	From    string   `json:"address"`
+	To      string   `json:"opcode"`
+	Value   *big.Int `json:"value"`
+	AssetID uint32   `json:"assetid"`
 }
 
 type TokenInfo struct {

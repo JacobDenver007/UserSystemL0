@@ -1,12 +1,11 @@
 package user
 
 import (
-	"fmt"
 	"testing"
 )
 
 func TestAccount(t *testing.T) {
 	for i := 0; i < 10; i++ {
-		fmt.Println(CreateAccount())
+		CreateAccount()
 	}
 }

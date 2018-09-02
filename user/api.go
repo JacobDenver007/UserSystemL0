@@ -393,5 +393,18 @@ func freezeAccount(req *common.FreezeAccountRequest) error {
 }
 
 func SendTransactionHandler(c *gin.Context) {
-
+	var respone common.APIRespone
+	req := &common.SendTransactionRequest{}
+	if err := c.BindJSON(&req); err != nil {
+		respone.ErrCode = common.ParamCode
+		respone.ErrMsg = err.Error()
+	} else {
+		if err := RPCClient.SendTransaction(req.From, req.To, req. AssetID, req.Value); err != nil {
+			respone.ErrCode = common.ExecuteCode
+			respone.ErrMsg = err.Error()
+		} else {
+			respone.ErrCode = common.OKCode
+		}
+	}
+	c.JSON(http.StatusOK, respone)
 }

@@ -1,28 +1,29 @@
 package user
 
 import (
-	"crypto/ecdsa"
-	"crypto/rand"
 	"encoding/hex"
-	"encoding/json"
-	"fmt"
 	"log"
 
-	"github.com/ethereum/go-ethereum/crypto"
-	"github.com/ethereum/go-ethereum/crypto/secp256k1"
+	"github.com/bocheninc/L0/components/crypto"
+	"github.com/bocheninc/L0/core/accounts"
 )
 
 func CreateAccount() string {
-	k, err := ecdsa.GenerateKey(secp256k1.S256(), rand.Reader)
+	k, err := crypto.GenerateKey()
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	address := crypto.PubkeyToAddress(k.PublicKey)
+	address := accounts.PublicKeyToAddress(*k.Public())
 	addressStr := "0x" + hex.EncodeToString(address[:])
 
-	content, err := json.Marshal(k)
-	fmt.Println(string(content))
-	DBClient.InsertAccount(addressStr, string(content))
+	secretByte := k.SecretBytes()
+	hexString := hex.EncodeToString(secretByte)
+
+	k1, _ := crypto.HexToECDSA(hexString)
+
+	address = accounts.PublicKeyToAddress(*k1.Public())
+	addressStr = "0x" + hex.EncodeToString(address[:])
+	DBClient.InsertAccount(addressStr, hexString)
 	return addressStr
 }
