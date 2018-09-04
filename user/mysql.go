@@ -97,7 +97,7 @@ func (db *DB) UpdateUserInfo(user *common.User) error {
 }
 
 func (db *DB) InsertToken(phoneNum string, verificationCode string) error {
-	sqlStr := fmt.Sprintf("INSERT INTO t_tokeninfo(s_verificationcode, s_phonenum, i_timestamp) values('%s','%s',%d);",
+	sqlStr := fmt.Sprintf("INSERT INTO t_verificationinfo(s_verificationcode, s_phonenum, i_timestamp) values('%s','%s',%d);",
 		verificationCode, phoneNum, time.Now().Unix())
 
 	return db.execSQL(sqlStr)
