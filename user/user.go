@@ -10,5 +10,6 @@ func Init() {
 	}
 	DBClient = db
 
+	RPCClient := &RPC{}
 	RPCClient.rpchost = "http://127.0.0.1:8881"
 }

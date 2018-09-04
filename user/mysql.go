@@ -116,9 +116,9 @@ func (db *DB) GetTokenInfo(phoneNum string) (*common.TokenInfo, error) {
 	return token, nil
 }
 
-func (db *DB) InsertAccount(address string, privateKey string) error {
-	sqlStr := fmt.Sprintf("INSERT INTO t_accountinfo(s_address, s_privatekey) values('%s','%s');",
-		address, privateKey)
+func (db *DB) InsertAccount(user string, address string, privateKey string) error {
+	sqlStr := fmt.Sprintf("INSERT INTO t_accountinfo(s_user, s_address, s_privatekey) values('%s','%s','%s');",
+		user, address, privateKey)
 
 	return db.execSQL(sqlStr)
 }

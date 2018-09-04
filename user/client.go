@@ -44,45 +44,114 @@ type RPC struct {
 // 	Error       string                 `json:"error"`        // 错误
 // }
 
+type Block struct {
+	Header *BlockHeader
+	Txs    []*Transaction
+}
+
+type BlockHeader struct {
+	PreviousHash string `json:"previousHash" `
+	TimeStamp    uint32 `json:"timeStamp"`
+	Nonce        uint32 `json:"nonce" `
+	Height       uint32 `json:"height" `
+}
+
+type Transaction struct {
+	Data txdata `json:"data"`
+
+	Hash string `json:"hash"`
+}
+
+type txdata struct {
+	Type       uint32   `json:"type"`
+	Nonce      uint32   `json:"nonce"`
+	Sender     string   `json:"sender"`
+	Recipient  string   `json:"recipient"`
+	AssetID    uint32   `json:"assetid"`
+	Amount     *big.Int `json:"amount"`
+	Fee        *big.Int `json:"fee"`
+	CreateTime uint32   `json:"createTime"`
+}
+
 var (
 	methodGetBlockHeaderByNumber = "Ledger.GetBlockByNumber"
 	methodGetBlockTxsByNumber    = "Ledger.GetTxsByBlockNumber"
 	methodSendTransaction        = "Transaction.Broadcast"
 )
 
-// func (client *RPCClient) GetBlockByNumber(number uint32) (*Block, error) {
-// 	t := time.Now()
-// 	cnt := int64(0)
-// 	defer func() {
-// 		log.Debugf("GetBlockByNumber %s elpase: %s, txs: %d\n", number, time.Now().Sub(t), cnt)
-// 	}()
+func GetBlockByNumber(number uint32) (*Block, error) {
+	blockHeader, err := RPCClient.GetBlockHeaderByNumber(number)
+	if err != nil {
+		return nil, err
+	}
+	blockTxs, err := RPCClient.GetBlockTxsByNumber(number)
+	if err != nil {
+		return nil, err
+	}
 
-// 	request := common.NewRPCRequest("2.0", methodGetBlockHeaderByNumber, number)
+	block := &Block{Header: blockHeader, Txs: blockTxs}
+	return block, nil
+}
 
-// 	jsonParsed, err := common.SendRPCRequst(client.rpchost, request)
-// 	if err != nil {
-// 		log.Errorf("GetBlockByNumber SendRPCRequst error --- %s --- %d", err, number.Int64())
-// 		return nil, fmt.Errorf("GetBlockByNumber SendRPCRequst error --- %s", err)
-// 	}
+func (client *RPC) GetBlockHeaderByNumber(number uint32) (*BlockHeader, error) {
+	t := time.Now()
+	defer func() {
+		log.Debugf("GetBlockHeaderByNumber %s elpase: %s\n", number, time.Now().Sub(t))
+	}()
 
-// 	if _, ok := jsonParsed.Path("error.code").Data().(float64); ok /*&& value > 0*/ {
-// 		if internal == true {
-// 			log.Info("getBlockNumber true rpc error --- %s --- %d", err, number.Int64())
-// 			return client.getBlockByNumberForZipperone(number, false)
-// 		} else {
-// 			msg, _ := jsonParsed.Path("error.message").Data().(string)
-// 			log.Errorf("getBlockNumber rpc error --- %s --- %d", err, number.Int64())
-// 			return nil, fmt.Errorf("getBlockByNumber rpc error --- %s", msg)
-// 		}
+	request := common.NewRPCRequest("2.0", methodGetBlockHeaderByNumber, number)
 
-// 	}
+	jsonParsed, err := common.SendRPCRequst(client.rpchost, request)
+	if err != nil {
+		log.Errorf("GetBlockHeaderByNumber SendRPCRequst error --- %s --- %d", err, number)
+		return nil, fmt.Errorf("GetBlockHeaderByNumber SendRPCRequst error --- %s", err)
+	}
 
-// 	if jsonParsed.Path("result").Data() == nil {
-// 		return nil, nil
-// 	}
+	blockHeader := &BlockHeader{}
+	blockHeader.PreviousHash = jsonParsed.Path("previousHash").Data().(string)
+	blockHeader.TimeStamp = uint32(jsonParsed.Path("timeStamp").Data().(float64))
+	blockHeader.Height = uint32(jsonParsed.Path("height").Data().(float64))
+	blockHeader.Nonce = uint32(jsonParsed.Path("nonce").Data().(float64))
 
-// 	return client.decodeBlockJSON(jsonParsed.Path("result"))
-// }
+	return blockHeader, nil
+}
+
+func (client *RPC) GetBlockTxsByNumber(number uint32) ([]*Transaction, error) {
+	t := time.Now()
+	cnt := int64(0)
+	defer func() {
+		log.Debugf("GetBlockTxsByNumber %s elpase: %s, txs: %d\n", number, time.Now().Sub(t), cnt)
+	}()
+
+	request := common.NewRPCRequest("2.0", methodGetBlockTxsByNumber, number)
+
+	jsonParsed, err := common.SendRPCRequst(client.rpchost, request)
+	if err != nil {
+		log.Errorf("GetBlockTxsByNumber SendRPCRequst error --- %s --- %d", err, number)
+		return nil, fmt.Errorf("GetBlockTxsByNumber SendRPCRequst error --- %s", err)
+	}
+
+	txs := make([]*Transaction, 0)
+
+	children, _ := jsonParsed.S("transactions").Children()
+	for _, child := range children {
+		tx := &Transaction{}
+		tx.Data.Sender = child.Path("data.sender").Data().(string)
+		tx.Data.Recipient = child.Path("data.recipient").Data().(string)
+		tx.Data.Amount = new(big.Int)
+		tx.Data.Amount.UnmarshalJSON([]byte(jsonParsed.Path("data.amount").Data().(string)))
+		tx.Data.Fee = new(big.Int)
+		tx.Data.Fee.UnmarshalJSON([]byte(jsonParsed.Path("data.fee").Data().(string)))
+		tx.Data.AssetID = uint32(child.Path("data.assetid").Data().(float64))
+		tx.Data.Type = uint32(child.Path("data.type").Data().(float64))
+		tx.Data.CreateTime = uint32(child.Path("data.createTime").Data().(float64))
+		tx.Hash = child.Path("hash").Data().(string)
+
+		txs = append(txs, tx)
+	}
+
+	return txs, nil
+}
 
 func (client *RPC) SendTransaction(from string, to string, assetId uint32, value *big.Int) error {
 	t := time.Now()

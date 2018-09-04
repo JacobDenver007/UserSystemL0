@@ -327,7 +327,8 @@ func CreateAccountHandler(c *gin.Context) {
 		respone.ErrCode = common.ParamCode
 		respone.ErrMsg = err.Error()
 	} else {
-		if response, err := createAccount(req); err != nil {
+		currentUser := getCurrentUser(c)
+		if response, err := createAccount(currentUser, req); err != nil {
 			respone.ErrCode = common.ExecuteCode
 			respone.ErrMsg = err.Error()
 		} else {
@@ -339,21 +340,21 @@ func CreateAccountHandler(c *gin.Context) {
 	c.JSON(http.StatusOK, respone)
 }
 
-func createAccount(req *common.CreateAccountRequest) (*common.CreateAccountResponse, error) {
+func createAccount(user string, req *common.CreateAccountRequest) (*common.CreateAccountResponse, error) {
 	response := &common.CreateAccountResponse{}
 	address, privateKey := GernerateAccount()
 
 	if req.PrivateKey == "" {
 		response.Address = address
 		response.Hex = privateKey
-		err := DBClient.InsertAccount(address, privateKey)
+		err := DBClient.InsertAccount(user, address, privateKey)
 		return response, err
 	} else {
 		account, _ := DBClient.GetAccountInfo(address)
 		if account == nil {
 			response.Address = address
 			response.Hex = privateKey
-			err := DBClient.InsertAccount(address, privateKey)
+			err := DBClient.InsertAccount(user, address, privateKey)
 			return response, err
 		} else {
 			return nil, fmt.Errorf("账户已存在，请勿重复创建")

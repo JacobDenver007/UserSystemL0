@@ -24,6 +24,5 @@ func GernerateAccount() (string, string) {
 
 	address = accounts.PublicKeyToAddress(*k1.Public())
 	addressStr = "0x" + hex.EncodeToString(address[:])
-	DBClient.InsertAccount(addressStr, hexString)
 	return addressStr, hexString
 }

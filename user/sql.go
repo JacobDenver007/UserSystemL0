@@ -36,10 +36,12 @@ CREATE TABLE IF NOT EXISTS t_verificationinfo (
 
 CREATE TABLE IF NOT EXISTS t_accoutninfo (
 	id INTEGER(11)       PRIMARY KEY AUTO_INCREMENT,
+	s_user               VARCHAR(42) NOT NULL,
 	s_address            VARCHAR(42) NOT NULL,
 	s_privatekey         longtext,
 	i_issuspended        tinyint(1) default 0,
 	i_isfrozen           tinyint(1) default 0,
+	INDEX uniq_user (s_user)
 	UNIQUE KEY uniq_address (s_address)
 );
 `
