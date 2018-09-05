@@ -100,7 +100,7 @@ func SignUpByMobileHandler(c *gin.Context) {
 
 func createUser(req *common.SignUpByMobileRequest) error {
 	if user, _ := DBClient.GetUserInfo(req.UserName); user != nil {
-		return fmt.Errorf("user %s already exist", req.UserName)
+		return fmt.Errorf("用户 %s 已经存在", req.UserName)
 	}
 	if err := VerifiedCode(req.PhoneNum, req.VerificationCode); err != nil {
 		return err
@@ -162,7 +162,7 @@ func VerifiedCode(phoneNum string, verificationCode string) error {
 		return err
 	}
 	if token.VerificationCode != verificationCode {
-		return fmt.Errorf("wrong verification code")
+		return fmt.Errorf("验证码错误")
 	}
 	return nil
 }

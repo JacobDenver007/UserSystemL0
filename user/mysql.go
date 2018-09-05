@@ -2,6 +2,7 @@ package user
 
 import (
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	"net/url"
 	"strings"
@@ -14,6 +15,17 @@ import (
 
 type DB struct {
 	sqlDB *sql.DB
+}
+
+type Address struct {
+	address string
+	count   uint32
+	mount   string
+	nonce   uint32
+}
+
+type History struct {
+	txIds []uint64
 }
 
 func (db *DB) execSQL(sqlStr string) error {
@@ -108,7 +120,7 @@ func (db *DB) GetTokenInfo(phoneNum string) (*common.TokenInfo, error) {
 	row := db.sqlDB.QueryRow("SELECT s_phonenum, s_verificationcode, i_timestamp from t_verificationinfo where s_phonenum=? order by id desc limit 1;", phoneNum)
 	err := row.Scan(&token.PhoneNum, &token.VerificationCode, &token.TimeStamp)
 	if err == sql.ErrNoRows {
-		return nil, fmt.Errorf("this phone did not send verification code")
+		return nil, fmt.Errorf("此手机号未发送过验证码，请检查手机号是否正确")
 	}
 	if err != nil {
 		return nil, err
@@ -140,4 +152,232 @@ func (db *DB) UpdateAccountInfo(account *common.Account) error {
 	sqlStr := fmt.Sprintf("UPDATE t_accountinfo set s_address='%s', s_privatekey='%s', i_issuspended=%d, i_isfrozen=%d where s_address='%s';",
 		account.Address, account.PrivateKey, account.IsSuspended, account.IsFrozen, account.Address)
 	return db.execSQL(sqlStr)
+}
+
+func (db *DB) GetBestBlock() (*Block, error) {
+	block := &Block{}
+	sqlstr := "SELECT i_height FROM t_mainchain order by i_height desc limit 1"
+	row := db.sqlDB.QueryRow(sqlstr)
+	err := row.Scan(&block.Header.Height)
+	if err == sql.ErrNoRows {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	return block, nil
+}
+
+func (db *DB) InsertBlock(block *Block) error {
+	txIndex, _ := db.getTxIndex(block.Header.Height - 1)
+
+	tmpTxIndex := txIndex
+
+	var sqlStr string
+	address := make(map[string]*Address)
+	history := make(map[string]*History)
+
+	for _, tx := range block.Txs {
+		tTxName := "t_txs"
+
+		txID := (txIndex + 1) % 10000000
+		sqlStr += fmt.Sprintf("INSERT INTO %s(id, s_hash, i_nonce, s_from_addr, s_to_addr, s_value, i_fee, i_height, i_created) values(%d, '%s',%d,'%s','%s','%s','%s',%d,%d);", tTxName, txID, tx.Hash, tx.Data.Nonce, tx.Data.Sender, tx.Data.Recipient, tx.Data.Amount.String(), tx.Data.Fee.String(), block.Header.Height, tx.Data.CreateTime)
+
+		address = db.formAddress(address, tx.Data.Sender, tx.Data.Nonce)
+		history = db.formHistory(history, tx.Data.Sender, txIndex)
+		if tx.Data.Sender != tx.Data.Recipient {
+			address = db.formAddress(address, tx.Data.Recipient, 0)
+			history = db.formHistory(history, tx.Data.Recipient, txIndex)
+		}
+		txIndex++
+	}
+
+	sqlStr += db.updateAddress(address)
+	sqlStr += db.updateHistory(history)
+
+	sqlStr += fmt.Sprintf("INSERT INTO t_mainchain(i_height, s_hash, i_tx_count, i_tx_index, i_created) values(%d,'%s', %d, %d, %d);",
+		block.Header.Height, "", len(block.Txs), tmpTxIndex, block.Header.TimeStamp)
+	return db.execSQL(sqlStr)
+}
+
+func (db *DB) getTxIndex(blockNumber uint32) (uint64, error) {
+	row := db.sqlDB.QueryRow("SELECT i_tx_count, i_tx_index FROM t_mainchain where i_height=?", blockNumber)
+	var txCount, txIndex uint64
+	err := row.Scan(&txCount, &txIndex)
+	if err == sql.ErrNoRows {
+		log.Errorf("db.getTxIndex: ERROR, can not get txindex %d", blockNumber)
+		return 0, nil
+	}
+	if err != nil {
+		log.Errorf("db.getTxIndex: ERROR, block:%d %s", blockNumber, err)
+		panic(err)
+	}
+	return txCount + txIndex, nil
+}
+
+func (db *DB) formHistory(history map[string]*History, key string, txIndex uint64) map[string]*History {
+	if v, ok := history[key]; !ok {
+		txIDs := make([]uint64, 0)
+		history[key] = &History{txIds: append(txIDs, txIndex)}
+	} else {
+		history[key] = &History{txIds: append(v.txIds, txIndex)}
+	}
+	return history
+}
+
+func (db *DB) updateHistory(history map[string]*History) string {
+
+	var sqlStr string
+
+	for key, v := range history {
+		tName := "t_history"
+		isExist, _, _, _ := db.getAddressInfo(key)
+
+		if !isExist {
+			addressRow := key
+			txs, _ := json.Marshal(v.txIds)
+			sqlStr += fmt.Sprintf("REPLACE INTO %s(s_address, s_txs) values('%s','%s');", tName, addressRow, string(txs))
+		} else {
+			addressRow := key
+			id, txs, _ := db.getHistory(tName, addressRow)
+			txsID := make([]uint64, 0)
+			err := json.Unmarshal([]byte(txs), &txsID)
+			if err != nil {
+				log.Errorf("updateHistory Unmarshal fail %s", err.Error())
+			}
+			for _, txIndex := range v.txIds {
+				txsID = append(txsID, txIndex)
+			}
+			newTxs, _ := json.Marshal(txsID)
+			sqlStr += fmt.Sprintf("REPLACE INTO %s(id,s_address, s_txs) values(%d,'%s','%s');", tName, id, addressRow, string(newTxs))
+		}
+	}
+	return sqlStr
+}
+
+func (db *DB) formAddress(address map[string]*Address, hash string, inNonce uint32) map[string]*Address {
+	_, dbcount, nonce, _ := db.getAddressInfo(hash)
+	if inNonce > nonce {
+		nonce = inNonce
+	}
+
+	if v, ok := address[hash]; !ok {
+		address[hash] = &Address{address: hash, count: dbcount + 1, mount: "0", nonce: nonce}
+	} else {
+		address[hash] = &Address{address: hash, count: v.count + 1, mount: "0", nonce: nonce}
+	}
+	return address
+}
+
+func (db *DB) updateAddress(address map[string]*Address) string {
+	var sqlStr string
+
+	for k, v := range address {
+		sqlStr += fmt.Sprintf("REPLACE INTO t_address(s_address, i_tx_counts, s_mount, i_nonce) values('%s', %d, '%s', %d);",
+			k, v.count, "0", v.nonce)
+	}
+	return sqlStr
+}
+
+func (db *DB) getAddressInfo(addressHash string) (bool, uint32, uint32, string) {
+	row := db.sqlDB.QueryRow("SELECT i_tx_counts, i_nonce, s_mount FROM t_address where s_address=?", addressHash)
+	var count, nonce uint32
+	var amount string
+	err := row.Scan(&count, &nonce, &amount)
+	if err == sql.ErrNoRows {
+		log.Debugf("db.getAddressInfo: can not find address %s", addressHash)
+		return false, 0, 0, "0"
+	}
+	if err != nil {
+		log.Errorf("db.getAddressInfo: ERROR, address: %s %s", addressHash, err)
+		panic(err)
+	}
+	return true, count, nonce, amount
+}
+
+func (db *DB) getHistory(tName string, addressRow string) (uint64, string, error) {
+	sqlStr := fmt.Sprintf("SELECT id, s_txs FROM %s where s_address='%s'", tName, addressRow)
+	row := db.sqlDB.QueryRow(sqlStr)
+	var txs string
+	var id uint64
+	err := row.Scan(&id, &txs)
+	if err != nil {
+		log.Errorf("mysql.getHistory: ERROR, address: %s %s", addressRow, err)
+		panic(err)
+	}
+	return id, txs, nil
+}
+
+func (db *DB) GetHistory(addr string, skip, count int64) ([]*Transaction, error) {
+	var reslutTxs []*Transaction
+
+	dbTxs, err := db.getHistoryFromDB(addr)
+	if err != nil {
+		return nil, err
+	}
+	reslutTxs = append(reslutTxs, dbTxs...)
+	return reslutTxs, err
+}
+
+func (db *DB) getHistoryFromDB(addr string) ([]*Transaction, error) {
+	tName := "t_history"
+	isExist, txcount, _, _ := db.getAddressInfo(addr)
+
+	//mysql not found txcount by addr, contractAddr
+	if !isExist {
+		return nil, nil
+	}
+
+	var (
+		txs []*Transaction
+	)
+
+	for i := (txcount - 1) / 1000; i >= 0; i-- {
+		addressRow := addr
+		txIDsStr, err := db.getTxIDs(tName, addressRow)
+		if err != nil {
+			return nil, err
+		}
+		txIDs := make([]uint64, 0)
+		json.Unmarshal([]byte(txIDsStr), &txIDs)
+
+		for j := len(txIDs) - 1; j >= 0; j-- {
+			tx, err := db.getTxByID(txIDs[j])
+			if err != nil {
+				return nil, err
+			}
+			txs = append(txs, tx)
+		}
+	}
+
+	return txs, nil
+}
+
+func (db *DB) getTxIDs(tName string, addressRow string) (string, error) {
+	sqlStr := fmt.Sprintf("SELECT s_txs FROM %s where s_address='%s'", tName, addressRow)
+	row := db.sqlDB.QueryRow(sqlStr)
+	var txs string
+	err := row.Scan(&txs)
+	if err != nil {
+		return "", err
+	}
+	return txs, nil
+}
+
+func (db *DB) getTxByID(id uint64) (*Transaction, error) {
+	sqlStr := fmt.Sprintf("select s_hash,s_from_addr,s_to_addr,s_value,s_fee,i_nonce,i_height,i_created from %s where id=%d ", "t_txs", id)
+	row := db.sqlDB.QueryRow(sqlStr)
+
+	tx := &Transaction{}
+	var value, fee string
+	err := row.Scan(&tx.Hash, &tx.Data.Sender, &tx.Data.Recipient, &value, &fee, &tx.Data.Nonce, &tx.Data.BlockNumber, &tx.Data.CreateTime)
+	if err == sql.ErrNoRows {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	tx.Data.Amount.SetString(value, 10)
+	tx.Data.Fee.SetString(fee, 10)
+	return tx, nil
 }

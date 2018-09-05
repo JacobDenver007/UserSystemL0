@@ -63,28 +63,48 @@ type Transaction struct {
 }
 
 type txdata struct {
-	Type       uint32   `json:"type"`
-	Nonce      uint32   `json:"nonce"`
-	Sender     string   `json:"sender"`
-	Recipient  string   `json:"recipient"`
-	AssetID    uint32   `json:"assetid"`
-	Amount     *big.Int `json:"amount"`
-	Fee        *big.Int `json:"fee"`
-	CreateTime uint32   `json:"createTime"`
+	Type        uint32   `json:"type"`
+	Nonce       uint32   `json:"nonce"`
+	Sender      string   `json:"sender"`
+	Recipient   string   `json:"recipient"`
+	AssetID     uint32   `json:"assetid"`
+	Amount      *big.Int `json:"amount"`
+	Fee         *big.Int `json:"fee"`
+	CreateTime  uint32   `json:"createTime"`
+	BlockNumber uint32   `json:"blocknumber"`
 }
 
 var (
+	methodGetBlockNumber         = "Ledger.Height"
 	methodGetBlockHeaderByNumber = "Ledger.GetBlockByNumber"
 	methodGetBlockTxsByNumber    = "Ledger.GetTxsByBlockNumber"
 	methodSendTransaction        = "Transaction.Broadcast"
 )
 
-func GetBlockByNumber(number uint32) (*Block, error) {
-	blockHeader, err := RPCClient.GetBlockHeaderByNumber(number)
+func (client *RPC) GetBlockNumber() (uint32, error) {
+	t := time.Now()
+	defer func() {
+		log.Debugf("GetBlockNumber elpase: %s\n", time.Now().Sub(t))
+	}()
+
+	request := common.NewRPCRequest("2.0", methodGetBlockNumber)
+
+	jsonParsed, err := common.SendRPCRequst(client.rpchost, request)
+	if err != nil {
+		log.Errorf("GetBlockHeaderGetBlockNumberByNumber SendRPCRequst error --- %s", err)
+		return 0, fmt.Errorf("GetBlockNumber SendRPCRequst error --- %s", err)
+	}
+
+	return uint32(jsonParsed.Path("height").Data().(float64)), nil
+
+}
+
+func (client *RPC) GetBlockByNumber(number uint32) (*Block, error) {
+	blockHeader, err := client.GetBlockHeaderByNumber(number)
 	if err != nil {
 		return nil, err
 	}
-	blockTxs, err := RPCClient.GetBlockTxsByNumber(number)
+	blockTxs, err := client.GetBlockTxsByNumber(number)
 	if err != nil {
 		return nil, err
 	}

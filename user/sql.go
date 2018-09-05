@@ -44,4 +44,42 @@ CREATE TABLE IF NOT EXISTS t_accoutninfo (
 	INDEX uniq_user (s_user),
 	UNIQUE KEY uniq_address (s_address)
 );
+
+CREATE TABLE IF NOT EXISTS t_mainchain (
+	id int(11) NOT NULL PRIMARY KEY AUTO_INCREMENT,
+	i_height int(11) NOT NULL,
+	s_hash varchar(100) NOT NULL,
+	i_tx_count int(11) NOT NULL,
+	i_tx_index int(11) NOT NULL,
+	i_created int(11) NOT NULL,
+	UNIQUE KEY uniq_row(i_height)
+);
+
+CREATE TABLE IF NOT EXISTS t_txs (
+	id int(11) NOT NULL PRIMARY KEY AUTO_INCREMENT,
+	s_hash varchar(100) NOT NULL,
+	i_nonce int(11) NOT NULL,
+	s_from_addr longtext NOT NULL,
+	s_to_addr longtext NOT NULL,
+	s_value varchar(100) NOT NULL,
+	i_fee bigint(20) NOT NULL,
+	i_height int(11) NOT NULL,
+	i_created int(11) NOT NULL,
+	s_error longtext
+); 
+
+CREATE TABLE IF NOT EXISTS t_address (
+	s_address varchar(100) NOT NULL,
+	i_tx_counts int(11) NOT NULL,
+	s_mount varchar(100) NOT NULL,
+	i_nonce int(11) NOT NULL,
+	PRIMARY KEY (s_address)
+);
+
+CREATE TABLE IF NOT EXISTS t_history (
+	id int(11) NOT NULL PRIMARY KEY AUTO_INCREMENT,
+	s_address varchar(100) NOT NULL,
+	s_txs longtext NOT NULL,
+	UNIQUE KEY uniq_address(s_address)
+); 
 `
