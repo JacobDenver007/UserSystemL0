@@ -112,8 +112,8 @@ type GetUserAccountRequest struct {
 }
 
 type SendTransactionRequest struct {
-	From    string   `json:"address"`
-	To      string   `json:"opcode"`
+	From    string   `json:"from"`
+	To      string   `json:"to"`
 	Value   *big.Int `json:"value"`
 	AssetID uint32   `json:"assetid"`
 }
