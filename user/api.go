@@ -22,6 +22,7 @@ func RegisterAPI(router *gin.Engine) {
 	router.POST(fmt.Sprintf("/resetusername"), ResetUserNameHandler)
 	router.POST(fmt.Sprintf("/resetuserpwd"), ResetUserPwdHandler)
 	router.POST(fmt.Sprintf("/resetuserphone"), ResetUserPhoneHandler)
+	router.POST(fmt.Sprintf("/approveuser"), ApproveUserHandler)
 	router.POST(fmt.Sprintf("/getuserinfo"), GetUserInfoHandler)
 
 	router.POST(fmt.Sprintf("/createaccount"), CreateAccountHandler)
@@ -31,6 +32,7 @@ func RegisterAPI(router *gin.Engine) {
 	router.POST(fmt.Sprintf("/getuseraccount"), GetUserAccountHandler)
 
 	router.POST(fmt.Sprintf("/sendtransaction"), SendTransactionHandler)
+	router.POST(fmt.Sprintf("/gethistoryinfo"), GetHistoryInfoHandler)
 }
 
 func getToken(c *gin.Context) *Token {
@@ -358,6 +360,45 @@ func resetUserPhone(req *common.ResetUserPhoneRequest) error {
 	return nil
 }
 
+func ApproveUserHandler(c *gin.Context) {
+	var respone common.APIRespone
+	req := &common.ApproveUserRequest{}
+	if err := c.BindJSON(&req); err != nil {
+		respone.ErrCode = common.ParamCode
+		respone.ErrMsg = err.Error()
+	} else {
+		token := getToken(c)
+		if token.UserName == "admin" {
+			if err := approveUser(req); err != nil {
+				respone.ErrCode = common.ExecuteCode
+				respone.ErrMsg = err.Error()
+			} else {
+				respone.Data = "操作成功"
+				respone.ErrCode = common.OKCode
+			}
+		} else {
+			respone.ErrCode = common.ExecuteCode
+			respone.ErrMsg = "非admin用户无权审批"
+		}
+	}
+	c.JSON(http.StatusOK, respone)
+}
+
+func approveUser(req *common.ApproveUserRequest) error {
+	if req.UserName == "admin" {
+		return fmt.Errorf("不能修改admin用户状态")
+	}
+	user, err := DBClient.GetUserInfo(req.UserName)
+	if err != nil {
+		return err
+	}
+	user.IsApproved = req.OPCode
+	if err := DBClient.UpdateUserInfo(user); err != nil {
+		return err
+	}
+	return nil
+}
+
 func GetUserInfoHandler(c *gin.Context) {
 	var respone common.APIRespone
 	req := &common.GetUserInfoRequest{}
@@ -593,4 +634,22 @@ func checkSendTxOption(user string, req *common.SendTransactionRequest) error {
 		return err
 	}
 	return nil
+}
+
+func GetHistoryInfoHandler(c *gin.Context) {
+	var respone common.APIRespone
+	req := &common.GetHistoryRequest{}
+	if err := c.BindJSON(&req); err != nil {
+		respone.ErrCode = common.ParamCode
+		respone.ErrMsg = err.Error()
+	} else {
+		if txs, err := DBClient.GetHistory(req.Address); err != nil {
+			respone.ErrCode = common.ExecuteCode
+			respone.ErrMsg = err.Error()
+		} else {
+			respone.Data = txs
+			respone.ErrCode = common.OKCode
+		}
+	}
+	c.JSON(http.StatusOK, respone)
 }

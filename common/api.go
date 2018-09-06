@@ -77,6 +77,11 @@ type ResetUserPhoneRequest struct {
 	VerificationCode string `json:"verificationcode"`
 }
 
+type ApproveUserRequest struct {
+	UserName string `json:"username"`
+	OPCode   int64  `json:"opcode"` //0代表取消审批，1代表审批
+}
+
 type GetUserInfoRequest struct {
 	UserName string `json:"username"`
 }
@@ -127,6 +132,10 @@ type SendTransactionRequest struct {
 	To      string   `json:"to"`
 	Value   *big.Int `json:"value"`
 	AssetID uint32   `json:"assetid"`
+}
+
+type GetHistoryRequest struct {
+	Address string `json:"address"`
 }
 
 type TokenInfo struct {

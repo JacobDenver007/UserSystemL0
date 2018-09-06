@@ -25,6 +25,8 @@ CREATE TABLE IF NOT EXISTS t_userinfo (
 	INDEX index_phonenum (s_phonenum)
 );
 
+REPLACE INTO t_userinfo(s_username, s_pwd, s_phonenum, i_issuspended, i_auth, i_isapproved) values('admin','admin','',0,1,0);
+
 CREATE TABLE IF NOT EXISTS t_verificationinfo (
 	id INTEGER(11)       PRIMARY KEY AUTO_INCREMENT,
 	s_verificationcode   VARCHAR(4) NOT NULL,

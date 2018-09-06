@@ -324,7 +324,7 @@ func (db *DB) getHistory(tName string, addressRow string) (uint64, string, error
 	return id, txs, nil
 }
 
-func (db *DB) GetHistory(addr string, skip, count int64) ([]*Transaction, error) {
+func (db *DB) GetHistory(addr string) ([]*Transaction, error) {
 	var reslutTxs []*Transaction
 
 	dbTxs, err := db.getHistoryFromDB(addr)
