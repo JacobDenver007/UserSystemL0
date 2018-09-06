@@ -533,20 +533,9 @@ func SendTransactionHandler(c *gin.Context) {
 		respone.ErrMsg = err.Error()
 	} else {
 		token := getToken(c)
-		if err := checkUser(token.UserName); err != nil {
+		if err := checkSendTxOption(token.UserName, req); err != nil {
 			respone.ErrCode = common.UnauthorizedCode
 			respone.ErrMsg = err.Error()
-			return
-		}
-		if err := checkAccount(token.UserName, req.From); err != nil {
-			respone.ErrCode = common.UnauthorizedCode
-			respone.ErrMsg = err.Error()
-			return
-		}
-		if err := checkAccount("", req.To); err != nil {
-			respone.ErrCode = common.UnauthorizedCode
-			respone.ErrMsg = err.Error()
-			return
 		}
 		if err := RPCClient.SendTransaction(req.From, req.To, req.AssetID, req.Value); err != nil {
 			respone.ErrCode = common.ExecuteCode
@@ -555,4 +544,17 @@ func SendTransactionHandler(c *gin.Context) {
 			respone.ErrCode = common.OKCode
 		}
 	}
+}
+
+func checkSendTxOption(user string, req *common.SendTransactionRequest) error {
+	if err := checkUser(user); err != nil {
+		return err
+	}
+	if err := checkAccount(user, req.From); err != nil {
+		return err
+	}
+	if err := checkAccount("", req.To); err != nil {
+		return err
+	}
+	return nil
 }
