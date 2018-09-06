@@ -14,26 +14,61 @@ import (
 // RegisterAPI 提供的API路由
 func RegisterAPI(router *gin.Engine) {
 	router.POST(fmt.Sprintf("/sendsms"), SendSmsHandler)
+
 	router.POST(fmt.Sprintf("/signup"), SignUpByMobileHandler)
 	router.POST(fmt.Sprintf("/signin"), SignInHandler)
+
 	router.POST(fmt.Sprintf("/suspenduser"), SuspendUserHandler)
 	router.POST(fmt.Sprintf("/resetusername"), ResetUserNameHandler)
 	router.POST(fmt.Sprintf("/resetuserpwd"), ResetUserPwdHandler)
 	router.POST(fmt.Sprintf("/resetuserphone"), ResetUserPhoneHandler)
+	router.POST(fmt.Sprintf("/getuserinfo"), GetUserInfoHandler)
 
 	router.POST(fmt.Sprintf("/createaccount"), CreateAccountHandler)
 	router.POST(fmt.Sprintf("/suspendaccount"), SuspendAccountHandler)
 	router.POST(fmt.Sprintf("/freezeaccount"), FreezeAccountHandler)
+	router.POST(fmt.Sprintf("/getuseraccount"), GetUserAccountHandler)
 
 	router.POST(fmt.Sprintf("/sendtransaction"), SendTransactionHandler)
 }
 
-func getCurrentUser(c *gin.Context) string {
+func getToken(c *gin.Context) *Token {
 	h := c.GetHeader("Authorization")
 	t := session.Get(strings.TrimPrefix(h, "Bearer "))
 
 	token := t.(*Token)
-	return token.UserName
+	return token
+}
+
+func checkUser(userName string) error {
+	user, err := DBClient.GetUserInfo(userName)
+	if err != nil {
+		return err
+	}
+	if user.IsSuspended == 1 {
+		return fmt.Errorf("用户 %s 被注销", userName)
+	}
+	if user.IsApproved == 0 {
+		return fmt.Errorf("用户 %s 未经过审批", userName)
+	}
+	return nil
+}
+
+func checkAccount(userName string, address string) error {
+	account, err := DBClient.GetAccountInfo(address)
+	if err != nil {
+		return err
+	}
+	if account.IsSuspended == 1 {
+		return fmt.Errorf("账户 %s 被注销", address)
+	}
+	if account.IsFrozen == 1 {
+		return fmt.Errorf("账户 %s 被冻结", address)
+	}
+	if account.User != userName && userName != "" {
+		return fmt.Errorf("用户 %s 无权限使用账户 %s", userName, address)
+	}
+	return nil
 }
 
 func SendSmsHandler(c *gin.Context) {
@@ -47,7 +82,7 @@ func SendSmsHandler(c *gin.Context) {
 			respone.ErrCode = common.ExecuteCode
 			respone.ErrMsg = err.Error()
 		} else {
-			respone.Data = code
+			respone.Data = fmt.Sprintf("发送成功，验证码为 %s", code)
 			respone.ErrCode = common.OKCode
 		}
 	}
@@ -91,7 +126,8 @@ func SignUpByMobileHandler(c *gin.Context) {
 			session := getsessions(c)
 			session.Set(tokenString, token)
 
-			respone.Data = tokenString
+			data := &common.SignUpByMobileResponse{Auth: tokenString}
+			respone.Data = data
 			respone.ErrCode = common.OKCode
 		}
 	}
@@ -138,7 +174,8 @@ func SignInHandler(c *gin.Context) {
 			session := getsessions(c)
 			session.Set(tokenString, token)
 
-			respone.Data = tokenString
+			data := &common.SignUpByMobileResponse{Auth: tokenString}
+			respone.Data = data
 			respone.ErrCode = common.OKCode
 		}
 	}
@@ -174,8 +211,8 @@ func SuspendUserHandler(c *gin.Context) {
 		respone.ErrCode = common.ParamCode
 		respone.ErrMsg = err.Error()
 	} else {
-		currentUser := getCurrentUser(c)
-		if req.UserName != currentUser && currentUser != "admin" {
+		token := getToken(c)
+		if req.UserName != token.UserName && token.UserName != "admin" {
 			respone.ErrCode = common.UnauthorizedCode
 			respone.ErrMsg = "无权限"
 		} else {
@@ -183,6 +220,7 @@ func SuspendUserHandler(c *gin.Context) {
 				respone.ErrCode = common.ExecuteCode
 				respone.ErrMsg = err.Error()
 			} else {
+				respone.Data = "操作成功"
 				respone.ErrCode = common.OKCode
 			}
 		}
@@ -215,8 +253,8 @@ func ResetUserNameHandler(c *gin.Context) {
 		respone.ErrCode = common.ParamCode
 		respone.ErrMsg = err.Error()
 	} else {
-		currentUser := getCurrentUser(c)
-		if req.OldUserName != currentUser {
+		token := getToken(c)
+		if req.OldUserName != token.UserName {
 			respone.ErrCode = common.UnauthorizedCode
 			respone.ErrMsg = "无权限"
 		} else {
@@ -224,8 +262,8 @@ func ResetUserNameHandler(c *gin.Context) {
 				respone.ErrCode = common.ExecuteCode
 				respone.ErrMsg = err.Error()
 			} else {
+				respone.Data = "重置用户名成功，请重新登录"
 				respone.ErrCode = common.OKCode
-				respone.ErrMsg = "重置用户名成功，请重新登录"
 			}
 		}
 	}
@@ -251,8 +289,8 @@ func ResetUserPwdHandler(c *gin.Context) {
 		respone.ErrCode = common.ParamCode
 		respone.ErrMsg = err.Error()
 	} else {
-		currentUser := getCurrentUser(c)
-		if req.UserName != currentUser {
+		token := getToken(c)
+		if req.UserName != token.UserName {
 			respone.ErrCode = common.UnauthorizedCode
 			respone.ErrMsg = "无权限"
 		} else {
@@ -260,6 +298,7 @@ func ResetUserPwdHandler(c *gin.Context) {
 				respone.ErrCode = common.ExecuteCode
 				respone.ErrMsg = err.Error()
 			} else {
+				respone.Data = "重置用户密码成功"
 				respone.ErrCode = common.OKCode
 			}
 		}
@@ -273,7 +312,7 @@ func resetUserPwd(req *common.ResetUserPwdRequest) error {
 		return err
 	}
 	if validPwd := utils.ComparePassword(user.HashPwd, req.OldPwd); !validPwd {
-		return fmt.Errorf("wrong password")
+		return fmt.Errorf("旧密码错误")
 	}
 	user.HashPwd = utils.HashPassword(req.NewPwd)
 	if err := DBClient.UpdateUserInfo(user); err != nil {
@@ -289,8 +328,8 @@ func ResetUserPhoneHandler(c *gin.Context) {
 		respone.ErrCode = common.ParamCode
 		respone.ErrMsg = err.Error()
 	} else {
-		currentUser := getCurrentUser(c)
-		if req.UserName != currentUser {
+		token := getToken(c)
+		if req.UserName != token.UserName {
 			respone.ErrCode = common.UnauthorizedCode
 			respone.ErrMsg = "无权限"
 		} else {
@@ -298,6 +337,7 @@ func ResetUserPhoneHandler(c *gin.Context) {
 				respone.ErrCode = common.ExecuteCode
 				respone.ErrMsg = err.Error()
 			} else {
+				respone.Data = "重置手机号成功"
 				respone.ErrCode = common.OKCode
 			}
 		}
@@ -320,6 +360,40 @@ func resetUserPhone(req *common.ResetUserPhoneRequest) error {
 	return nil
 }
 
+func GetUserInfoHandler(c *gin.Context) {
+	var respone common.APIRespone
+	req := &common.GetUserInfoRequest{}
+	if err := c.BindJSON(&req); err != nil {
+		respone.ErrCode = common.ParamCode
+		respone.ErrMsg = err.Error()
+	} else {
+		if user, err := DBClient.GetUserInfo(req.UserName); err != nil {
+			respone.ErrCode = common.ExecuteCode
+			respone.ErrMsg = err.Error()
+		} else {
+			data := &common.GetUserInfoResponse{}
+			if user.IsSuspended == 1 {
+				data.IsSuspended = "用户被注销"
+			} else {
+				data.IsSuspended = "正常"
+			}
+			if user.IsApproved == 1 {
+				data.IsApproved = "已通过审批"
+			} else {
+				data.IsApproved = "未通过审批"
+			}
+			data.ID = user.ID
+			data.UserName = user.UserName
+			data.PhoneNum = user.PhoneNum
+
+			respone.Data = data
+			respone.ErrCode = common.OKCode
+		}
+
+	}
+	c.JSON(http.StatusOK, respone)
+}
+
 func CreateAccountHandler(c *gin.Context) {
 	var respone common.APIRespone
 	req := &common.CreateAccountRequest{}
@@ -327,8 +401,8 @@ func CreateAccountHandler(c *gin.Context) {
 		respone.ErrCode = common.ParamCode
 		respone.ErrMsg = err.Error()
 	} else {
-		currentUser := getCurrentUser(c)
-		if response, err := createAccount(currentUser, req); err != nil {
+		token := getToken(c)
+		if response, err := createAccount(token.UserName, req); err != nil {
 			respone.ErrCode = common.ExecuteCode
 			respone.ErrMsg = err.Error()
 		} else {
@@ -373,6 +447,7 @@ func SuspendAccountHandler(c *gin.Context) {
 			respone.ErrCode = common.ExecuteCode
 			respone.ErrMsg = err.Error()
 		} else {
+			respone.Data = fmt.Sprintf("注销账户 %s 成功", req.Address)
 			respone.ErrCode = common.OKCode
 		}
 	}
@@ -402,6 +477,7 @@ func FreezeAccountHandler(c *gin.Context) {
 			respone.ErrCode = common.ExecuteCode
 			respone.ErrMsg = err.Error()
 		} else {
+			respone.Data = "操作成功"
 			respone.ErrCode = common.OKCode
 		}
 	}
@@ -420,13 +496,49 @@ func freezeAccount(req *common.FreezeAccountRequest) error {
 	return nil
 }
 
+func GetUserAccountHandler(c *gin.Context) {
+	var respone common.APIRespone
+	req := &common.GetUserAccountRequest{}
+	if err := c.BindJSON(&req); err != nil {
+		respone.ErrCode = common.ParamCode
+		respone.ErrMsg = err.Error()
+	} else {
+		if accounts, err := DBClient.GetUserAccount(req.UserName); err != nil {
+			respone.ErrCode = common.ExecuteCode
+			respone.ErrMsg = err.Error()
+		} else {
+			respone.Data = accounts
+			respone.ErrCode = common.OKCode
+		}
+	}
+	c.JSON(http.StatusOK, respone)
+}
+
 func SendTransactionHandler(c *gin.Context) {
 	var respone common.APIRespone
+	defer c.JSON(http.StatusOK, respone)
+
 	req := &common.SendTransactionRequest{}
 	if err := c.BindJSON(&req); err != nil {
 		respone.ErrCode = common.ParamCode
 		respone.ErrMsg = err.Error()
 	} else {
+		token := getToken(c)
+		if err := checkUser(token.UserName); err != nil {
+			respone.ErrCode = common.UnauthorizedCode
+			respone.ErrMsg = err.Error()
+			return
+		}
+		if err := checkAccount(token.UserName, req.From); err != nil {
+			respone.ErrCode = common.UnauthorizedCode
+			respone.ErrMsg = err.Error()
+			return
+		}
+		if err := checkAccount("", req.To); err != nil {
+			respone.ErrCode = common.UnauthorizedCode
+			respone.ErrMsg = err.Error()
+			return
+		}
 		if err := RPCClient.SendTransaction(req.From, req.To, req.AssetID, req.Value); err != nil {
 			respone.ErrCode = common.ExecuteCode
 			respone.ErrMsg = err.Error()
@@ -434,5 +546,4 @@ func SendTransactionHandler(c *gin.Context) {
 			respone.ErrCode = common.OKCode
 		}
 	}
-	c.JSON(http.StatusOK, respone)
 }

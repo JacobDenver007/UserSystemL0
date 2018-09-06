@@ -137,8 +137,8 @@ func (db *DB) InsertAccount(user string, address string, privateKey string) erro
 
 func (db *DB) GetAccountInfo(address string) (*common.Account, error) {
 	account := &common.Account{}
-	row := db.sqlDB.QueryRow("SELECT s_address, s_privatekey, i_issuspended, i_isfrozen from t_accountinfo where s_address=?;", address)
-	err := row.Scan(&account.Address, &account.PrivateKey, &account.IsSuspended, &account.IsFrozen)
+	row := db.sqlDB.QueryRow("SELECT s_user, s_address, s_privatekey, i_issuspended, i_isfrozen from t_accountinfo where s_address=?;", address)
+	err := row.Scan(&account.User, &account.Address, &account.PrivateKey, &account.IsSuspended, &account.IsFrozen)
 	if err == sql.ErrNoRows {
 		return nil, fmt.Errorf("account does not exist")
 	}
@@ -152,6 +152,22 @@ func (db *DB) UpdateAccountInfo(account *common.Account) error {
 	sqlStr := fmt.Sprintf("UPDATE t_accountinfo set s_address='%s', s_privatekey='%s', i_issuspended=%d, i_isfrozen=%d where s_address='%s';",
 		account.Address, account.PrivateKey, account.IsSuspended, account.IsFrozen, account.Address)
 	return db.execSQL(sqlStr)
+}
+
+func (db *DB) GetUserAccount(user string) ([]string, error) {
+	sqlStr := fmt.Sprintf("SELECT s_address from t_accountinfo where s_user='%s';", user)
+	rows, err := db.sqlDB.Query(sqlStr)
+	defer rows.Close()
+	if err != nil {
+		return nil, err
+	}
+	accounts := make([]string, 0)
+	for rows.Next() {
+		var address string
+		rows.Scan(&address)
+		accounts = append(accounts, address)
+	}
+	return accounts, nil
 }
 
 func (db *DB) GetBestBlock() (*Block, error) {

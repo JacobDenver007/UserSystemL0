@@ -45,6 +45,10 @@ type SignUpByMobileRequest struct {
 	VerificationCode string `json:"verificationcode"`
 }
 
+type SignUpByMobileResponse struct {
+	Auth string `json:"Authorization"`
+}
+
 type SignInRequest struct {
 	UserName string `json:"username"`
 	Pwd      string `json:"pwd"`
@@ -73,6 +77,18 @@ type ResetUserPhoneRequest struct {
 	VerificationCode string `json:"verificationcode"`
 }
 
+type GetUserInfoRequest struct {
+	UserName string `json:"username"`
+}
+
+type GetUserInfoResponse struct {
+	ID          int64  `json:"id"`
+	UserName    string `json:"userName"`
+	PhoneNum    string `json:"phone"`
+	IsSuspended string `json:"cancelStatus"`  //0代表正常，1代表注销
+	IsApproved  string `json:"approveStatus"` //0代表未通过，1代表通过审批
+}
+
 type CreateAccountRequest struct {
 	PrivateKey string `json:"privatekey"`
 }
@@ -89,6 +105,10 @@ type SuspendAccountRequest struct {
 type FreezeAccountRequest struct {
 	Address string `json:"address"`
 	OPCode  int64  `json:"opcode"`
+}
+
+type GetUserAccountRequest struct {
+	UserName string `json:"username"`
 }
 
 type SendTransactionRequest struct {
@@ -115,6 +135,7 @@ type User struct {
 }
 
 type Account struct {
+	User        string `json:"user"`
 	Address     string `json:"address"`
 	PrivateKey  string `json:"privatekey"`
 	IsSuspended int64  `json:"issuspended"`
