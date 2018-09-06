@@ -413,19 +413,23 @@ func CreateAccountHandler(c *gin.Context) {
 
 func createAccount(user string, req *common.CreateAccountRequest) (*common.CreateAccountResponse, error) {
 	response := &common.CreateAccountResponse{}
-	address, privateKey := GernerateAccount()
 
 	if req.PrivateKey == "" {
+		address, privateKey := GernerateAccount()
 		response.Address = address
 		response.Hex = privateKey
 		err := DBClient.InsertAccount(user, address, privateKey)
 		return response, err
 	} else {
+		address, err := GenerateAccountByPrivateKey(req.PrivateKey)
+		if err != nil {
+			return nil, err
+		}
 		account, _ := DBClient.GetAccountInfo(address)
 		if account == nil {
 			response.Address = address
-			response.Hex = privateKey
-			err := DBClient.InsertAccount(user, address, privateKey)
+			response.Hex = req.PrivateKey
+			err := DBClient.InsertAccount(user, address, req.PrivateKey)
 			return response, err
 		} else {
 			return nil, fmt.Errorf("账户已存在，请勿重复创建")

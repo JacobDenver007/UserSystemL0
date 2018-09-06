@@ -2,6 +2,7 @@ package user
 
 import (
 	"encoding/hex"
+	"fmt"
 	"log"
 
 	"github.com/bocheninc/L0/components/crypto"
@@ -25,4 +26,16 @@ func GernerateAccount() (string, string) {
 	address = accounts.PublicKeyToAddress(*k1.Public())
 	addressStr = "0x" + hex.EncodeToString(address[:])
 	return addressStr, hexString
+}
+
+func GenerateAccountByPrivateKey(hexString string) (string, error) {
+	k1, err := crypto.HexToECDSA(hexString)
+	if err != nil {
+		return "", fmt.Errorf("私钥不合法")
+	}
+
+	address := accounts.PublicKeyToAddress(*k1.Public())
+	addressStr := "0x" + hex.EncodeToString(address[:])
+
+	return addressStr, nil
 }
