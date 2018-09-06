@@ -525,7 +525,6 @@ func GetUserAccountHandler(c *gin.Context) {
 
 func SendTransactionHandler(c *gin.Context) {
 	var respone common.APIRespone
-	defer c.JSON(http.StatusOK, respone)
 
 	req := &common.SendTransactionRequest{}
 	if err := c.BindJSON(&req); err != nil {
@@ -536,14 +535,17 @@ func SendTransactionHandler(c *gin.Context) {
 		if err := checkSendTxOption(token.UserName, req); err != nil {
 			respone.ErrCode = common.UnauthorizedCode
 			respone.ErrMsg = err.Error()
-		}
-		if err := RPCClient.SendTransaction(req.From, req.To, req.AssetID, req.Value); err != nil {
-			respone.ErrCode = common.ExecuteCode
-			respone.ErrMsg = err.Error()
 		} else {
-			respone.ErrCode = common.OKCode
+			if err := RPCClient.SendTransaction(req.From, req.To, req.AssetID, req.Value); err != nil {
+				respone.ErrCode = common.ExecuteCode
+				respone.ErrMsg = err.Error()
+			} else {
+				respone.Data = "发送成功"
+				respone.ErrCode = common.OKCode
+			}
 		}
 	}
+	c.JSON(http.StatusOK, respone)
 }
 
 func checkSendTxOption(user string, req *common.SendTransactionRequest) error {
