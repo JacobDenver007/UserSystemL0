@@ -7,7 +7,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/bochentec/zipperone/zservices/log"
+	"github.com/JacobDenver007/UserSystemL0/log"
 )
 
 // Scanning sync new blocks and new pending txs from main blockchain.
