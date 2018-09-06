@@ -107,6 +107,18 @@ type FreezeAccountRequest struct {
 	OPCode  int64  `json:"opcode"`
 }
 
+type GetAccountInfoRequest struct {
+	Address string `json:"address"`
+}
+
+type GetAccountInfoResponse struct {
+	ID          int64  `json:"id"`
+	Address     string `json:"address"`
+	User        string `json:"user"`
+	IsSuspended string `json:"cancelStatus"` //0代表正常，1代表注销
+	IsFrozen    string `json:"frozenStatus"` //0代表未通过，1代表通过审批
+}
+
 type GetUserAccountRequest struct {
 	UserName string `json:"username"`
 }

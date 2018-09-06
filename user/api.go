@@ -27,6 +27,7 @@ func RegisterAPI(router *gin.Engine) {
 	router.POST(fmt.Sprintf("/createaccount"), CreateAccountHandler)
 	router.POST(fmt.Sprintf("/suspendaccount"), SuspendAccountHandler)
 	router.POST(fmt.Sprintf("/freezeaccount"), FreezeAccountHandler)
+	router.POST(fmt.Sprintf("/getaccountinfo"), GetAccountInfoHandler)
 	router.POST(fmt.Sprintf("/getuseraccount"), GetUserAccountHandler)
 
 	router.POST(fmt.Sprintf("/sendtransaction"), SendTransactionHandler)
@@ -503,6 +504,39 @@ func freezeAccount(user string, req *common.FreezeAccountRequest) error {
 		return err
 	}
 	return nil
+}
+
+func GetAccountInfoHandler(c *gin.Context) {
+	var respone common.APIRespone
+	req := &common.GetAccountInfoRequest{}
+	if err := c.BindJSON(&req); err != nil {
+		respone.ErrCode = common.ParamCode
+		respone.ErrMsg = err.Error()
+	} else {
+		if account, err := DBClient.GetAccountInfo(req.Address); err != nil {
+			respone.ErrCode = common.ExecuteCode
+			respone.ErrMsg = err.Error()
+		} else {
+			data := &common.GetAccountInfoResponse{}
+			if account.IsSuspended == 1 {
+				data.IsSuspended = "账户被注销"
+			} else {
+				data.IsSuspended = "正常"
+			}
+			if account.IsFrozen == 1 {
+				data.IsFrozen = "账户被冻结"
+			} else {
+				data.IsFrozen = "正常"
+			}
+			data.Address = req.Address
+			data.User = account.User
+
+			respone.Data = data
+			respone.ErrCode = common.OKCode
+		}
+
+	}
+	c.JSON(http.StatusOK, respone)
 }
 
 func GetUserAccountHandler(c *gin.Context) {
