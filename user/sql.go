@@ -34,7 +34,7 @@ CREATE TABLE IF NOT EXISTS t_verificationinfo (
 	INDEX index_phonenum (s_phonenum)
 );
 
-CREATE TABLE IF NOT EXISTS t_accoutninfo (
+CREATE TABLE IF NOT EXISTS t_accountinfo (
 	id INTEGER(11)       PRIMARY KEY AUTO_INCREMENT,
 	s_user               VARCHAR(42) NOT NULL,
 	s_address            VARCHAR(42) NOT NULL,
