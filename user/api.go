@@ -236,9 +236,6 @@ func suspendUser(req *common.SuspendUser) error {
 	if err != nil {
 		return err
 	}
-	if req.OPCode == user.IsSuspended {
-		return nil
-	}
 	user.IsSuspended = req.OPCode
 	if err := DBClient.UpdateUserInfo(user); err != nil {
 		return err

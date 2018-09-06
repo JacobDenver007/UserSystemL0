@@ -91,8 +91,8 @@ func (db *DB) InsertUser(user *common.User) error {
 
 func (db *DB) GetUserInfo(name string) (*common.User, error) {
 	user := &common.User{}
-	row := db.sqlDB.QueryRow("SELECT s_username, s_pwd, s_phonenum, i_issuspended, i_auth, i_isapproved from t_userinfo where s_username=?;", name)
-	err := row.Scan(&user.UserName, &user.HashPwd, &user.PhoneNum, &user.IsSuspended, &user.Auth, &user.IsApproved)
+	row := db.sqlDB.QueryRow("SELECT id, s_username, s_pwd, s_phonenum, i_issuspended, i_auth, i_isapproved from t_userinfo where s_username=?;", name)
+	err := row.Scan(&user.ID, &user.UserName, &user.HashPwd, &user.PhoneNum, &user.IsSuspended, &user.Auth, &user.IsApproved)
 	if err == sql.ErrNoRows {
 		return nil, fmt.Errorf("用户不存在")
 	}
