@@ -444,7 +444,8 @@ func SuspendAccountHandler(c *gin.Context) {
 		respone.ErrCode = common.ParamCode
 		respone.ErrMsg = err.Error()
 	} else {
-		if err := suspendAccount(req); err != nil {
+		token := getToken(c)
+		if err := suspendAccount(token.UserName, req); err != nil {
 			respone.ErrCode = common.ExecuteCode
 			respone.ErrMsg = err.Error()
 		} else {
@@ -455,10 +456,13 @@ func SuspendAccountHandler(c *gin.Context) {
 	c.JSON(http.StatusOK, respone)
 }
 
-func suspendAccount(req *common.SuspendAccountRequest) error {
+func suspendAccount(user string, req *common.SuspendAccountRequest) error {
 	account, err := DBClient.GetAccountInfo(req.Address)
 	if err != nil {
 		return err
+	}
+	if user != account.User {
+		return fmt.Errorf("此账户非当前用户创建，用户无权操作此账户")
 	}
 	account.IsSuspended = 1
 	if err := DBClient.UpdateAccountInfo(account); err != nil {
@@ -474,7 +478,8 @@ func FreezeAccountHandler(c *gin.Context) {
 		respone.ErrCode = common.ParamCode
 		respone.ErrMsg = err.Error()
 	} else {
-		if err := freezeAccount(req); err != nil {
+		token := getToken(c)
+		if err := freezeAccount(token.UserName, req); err != nil {
 			respone.ErrCode = common.ExecuteCode
 			respone.ErrMsg = err.Error()
 		} else {
@@ -485,10 +490,13 @@ func FreezeAccountHandler(c *gin.Context) {
 	c.JSON(http.StatusOK, respone)
 }
 
-func freezeAccount(req *common.FreezeAccountRequest) error {
+func freezeAccount(user string, req *common.FreezeAccountRequest) error {
 	account, err := DBClient.GetAccountInfo(req.Address)
 	if err != nil {
 		return err
+	}
+	if user != account.User {
+		return fmt.Errorf("此账户非当前用户创建，用户无权操作此账户")
 	}
 	account.IsFrozen = req.OPCode
 	if err := DBClient.UpdateAccountInfo(account); err != nil {
