@@ -112,7 +112,6 @@ type GetAccountInfoRequest struct {
 }
 
 type GetAccountInfoResponse struct {
-	ID          int64  `json:"id"`
 	Address     string `json:"address"`
 	User        string `json:"user"`
 	IsSuspended string `json:"cancelStatus"` //0代表正常，1代表注销
