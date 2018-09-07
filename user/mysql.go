@@ -187,7 +187,9 @@ func (db *DB) GetBestBlock() (*Block, error) {
 	if err != nil {
 		return nil, err
 	}
-	block.Header.Height = height
+	blockHeader := &BlockHeader{}
+	blockHeader.Height = height
+	block.Header = blockHeader
 	return block, nil
 }
 
