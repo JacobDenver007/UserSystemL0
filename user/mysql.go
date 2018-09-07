@@ -182,11 +182,9 @@ func (db *DB) GetBestBlock() (*Block, error) {
 	row := db.sqlDB.QueryRow(sqlstr)
 	err := row.Scan(&height)
 	if err == sql.ErrNoRows {
-		fmt.Println("no row")
 		return nil, nil
 	}
 	if err != nil {
-		fmt.Println(err)
 		return nil, err
 	}
 	block.Header.Height = height

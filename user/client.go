@@ -87,7 +87,7 @@ func (client *RPC) GetBlockNumber() (uint32, error) {
 		log.Debugf("GetBlockNumber elpase: %s\n", time.Now().Sub(t))
 	}()
 
-	param := make([]string, 0)
+	param := make([]uint32, 0)
 	request := common.NewRPCRequest("2.0", methodGetBlockNumber, param)
 
 	jsonParsed, err := common.SendRPCRequst(client.rpchost, request)
