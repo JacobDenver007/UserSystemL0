@@ -11,12 +11,12 @@ import (
 func main() {
 	listenport := flag.Int("listenport", 9000, "api listen port")
 
+	user.Init()
 	router := gin.Default()
 	router.Use(user.Checklogged())
 	user.RegisterAPI(router)
 	if err := router.Run(fmt.Sprintf(":%d", *listenport)); err != nil {
 		panic(err)
 	}
-	user.Init()
-
+	user.Scanning(nil, nil)
 }
