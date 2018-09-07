@@ -87,16 +87,18 @@ func (client *RPC) GetBlockNumber() (uint32, error) {
 		log.Debugf("GetBlockNumber elpase: %s\n", time.Now().Sub(t))
 	}()
 
-	request := common.NewRPCRequest("2.0", methodGetBlockNumber)
+	param := make([]string, 0)
+	request := common.NewRPCRequest("2.0", methodGetBlockNumber, param)
 
 	jsonParsed, err := common.SendRPCRequst(client.rpchost, request)
 	if err != nil {
 		log.Errorf("GetBlockHeaderGetBlockNumberByNumber SendRPCRequst error --- %s", err)
 		return 0, fmt.Errorf("GetBlockNumber SendRPCRequst error --- %s", err)
 	}
-
-	return uint32(jsonParsed.Path("height").Data().(float64)), nil
-
+	if jsonParsed.Path("error").Data() != nil && jsonParsed.Path("error").Data().(string) != "null" {
+		return 0, fmt.Errorf("GetBlockNumber RPCResult error --- %s", jsonParsed.Path("error").Data().(string))
+	}
+	return uint32(jsonParsed.Path("result").Data().(float64)), nil
 }
 
 func (client *RPC) GetBlockByNumber(number uint32) (*Block, error) {
@@ -119,19 +121,23 @@ func (client *RPC) GetBlockHeaderByNumber(number uint32) (*BlockHeader, error) {
 		log.Debugf("GetBlockHeaderByNumber %s elpase: %s\n", number, time.Now().Sub(t))
 	}()
 
-	request := common.NewRPCRequest("2.0", methodGetBlockHeaderByNumber, number)
+	param := []uint32{number}
+	request := common.NewRPCRequest("2.0", methodGetBlockHeaderByNumber, param)
 
 	jsonParsed, err := common.SendRPCRequst(client.rpchost, request)
 	if err != nil {
 		log.Errorf("GetBlockHeaderByNumber SendRPCRequst error --- %s --- %d", err, number)
 		return nil, fmt.Errorf("GetBlockHeaderByNumber SendRPCRequst error --- %s", err)
 	}
+	if jsonParsed.Path("error").Data() != nil && jsonParsed.Path("error").Data().(string) != "null" {
+		return nil, fmt.Errorf("GetBlockHeaderByNumber RPCResult error --- %s", jsonParsed.Path("error").Data().(string))
+	}
 
 	blockHeader := &BlockHeader{}
-	blockHeader.PreviousHash = jsonParsed.Path("previousHash").Data().(string)
-	blockHeader.TimeStamp = uint32(jsonParsed.Path("timeStamp").Data().(float64))
-	blockHeader.Height = uint32(jsonParsed.Path("height").Data().(float64))
-	blockHeader.Nonce = uint32(jsonParsed.Path("nonce").Data().(float64))
+	blockHeader.PreviousHash = jsonParsed.Path("header.previousHash").Data().(string)
+	blockHeader.TimeStamp = uint32(jsonParsed.Path("header.timeStamp").Data().(float64))
+	blockHeader.Height = uint32(jsonParsed.Path("header.height").Data().(float64))
+	blockHeader.Nonce = uint32(jsonParsed.Path("header.nonce").Data().(float64))
 
 	return blockHeader, nil
 }
@@ -153,19 +159,17 @@ func (client *RPC) GetBlockTxsByNumber(number uint32) ([]*Transaction, error) {
 
 	txs := make([]*Transaction, 0)
 
-	children, _ := jsonParsed.S("transactions").Children()
+	children, _ := jsonParsed.S("result").Children()
 	for _, child := range children {
 		tx := &Transaction{}
 		tx.Data.Sender = child.Path("data.sender").Data().(string)
 		tx.Data.Recipient = child.Path("data.recipient").Data().(string)
-		tx.Data.Amount = new(big.Int)
-		tx.Data.Amount.UnmarshalJSON([]byte(jsonParsed.Path("data.amount").Data().(string)))
-		tx.Data.Fee = new(big.Int)
-		tx.Data.Fee.UnmarshalJSON([]byte(jsonParsed.Path("data.fee").Data().(string)))
+		tx.Data.Amount = big.NewInt(int64(jsonParsed.Path("data.amount").Data().(float64)))
+		tx.Data.Fee = big.NewInt(int64(jsonParsed.Path("data.fee").Data().(float64)))
 		tx.Data.AssetID = uint32(child.Path("data.assetid").Data().(float64))
 		tx.Data.Type = uint32(child.Path("data.type").Data().(float64))
 		tx.Data.CreateTime = uint32(child.Path("data.createTime").Data().(float64))
-		tx.Hash = child.Path("hash").Data().(string)
+		//tx.Hash = child.Path("hash").Data().(string)
 
 		txs = append(txs, tx)
 	}

@@ -103,6 +103,10 @@ type CreateAccountResponse struct {
 	Hex     string `json:"hex"`
 }
 
+type DeleteAccountResponse struct {
+	Address string `json:"address"`
+}
+
 type SuspendAccountRequest struct {
 	Address string `json:"address"`
 }

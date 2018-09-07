@@ -26,6 +26,7 @@ func RegisterAPI(router *gin.Engine) {
 	router.POST(fmt.Sprintf("/getuserinfo"), GetUserInfoHandler)
 
 	router.POST(fmt.Sprintf("/createaccount"), CreateAccountHandler)
+	router.POST(fmt.Sprintf("/deleteaccount"), DeleteAccountHandler)
 	router.POST(fmt.Sprintf("/suspendaccount"), SuspendAccountHandler)
 	router.POST(fmt.Sprintf("/freezeaccount"), FreezeAccountHandler)
 	router.POST(fmt.Sprintf("/getaccountinfo"), GetAccountInfoHandler)
@@ -479,6 +480,39 @@ func createAccount(user string, req *common.CreateAccountRequest) (*common.Creat
 	}
 }
 
+func DeleteAccountHandler(c *gin.Context) {
+	var respone common.APIRespone
+	req := &common.DeleteAccountResponse{}
+	if err := c.BindJSON(&req); err != nil {
+		respone.ErrCode = common.ParamCode
+		respone.ErrMsg = err.Error()
+	} else {
+		token := getToken(c)
+		if err := deleteAccount(token.UserName, req); err != nil {
+			respone.ErrCode = common.ExecuteCode
+			respone.ErrMsg = err.Error()
+		} else {
+			respone.Data = fmt.Sprintf("删除账户 %s 成功", req.Address)
+			respone.ErrCode = common.OKCode
+		}
+	}
+	c.JSON(http.StatusOK, respone)
+}
+
+func deleteAccount(user string, req *common.DeleteAccountResponse) error {
+	account, err := DBClient.GetAccountInfo(req.Address)
+	if err != nil {
+		return err
+	}
+	if user != account.User {
+		return fmt.Errorf("此账户非当前用户创建，用户无权操作此账户")
+	}
+	if err := DBClient.DeleteAccountInfo(req.Address); err != nil {
+		return err
+	}
+	return nil
+}
+
 func SuspendAccountHandler(c *gin.Context) {
 	var respone common.APIRespone
 	req := &common.SuspendAccountRequest{}
@@ -600,7 +634,6 @@ func GetUserAccountHandler(c *gin.Context) {
 
 func SendTransactionHandler(c *gin.Context) {
 	var respone common.APIRespone
-
 	req := &common.SendTransactionRequest{}
 	if err := c.BindJSON(&req); err != nil {
 		respone.ErrCode = common.ParamCode

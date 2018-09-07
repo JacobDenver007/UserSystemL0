@@ -170,6 +170,11 @@ func (db *DB) GetUserAccount(user string) ([]string, error) {
 	return accounts, nil
 }
 
+func (db *DB) DeleteAccountInfo(address string) error {
+	sqlStr := fmt.Sprintf("DELETE from t_accountinfo where s_address='%s';", address)
+	return db.execSQL(sqlStr)
+}
+
 func (db *DB) GetBestBlock() (*Block, error) {
 	block := &Block{}
 	sqlstr := "SELECT i_height FROM t_mainchain order by i_height desc limit 1"
