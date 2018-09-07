@@ -132,10 +132,10 @@ func (client *RPC) GetBlockHeaderByNumber(number uint32) (*BlockHeader, error) {
 	}
 
 	blockHeader := &BlockHeader{}
-	blockHeader.PreviousHash = jsonParsed.Path("header.previousHash").Data().(string)
-	blockHeader.TimeStamp = uint32(jsonParsed.Path("header.timeStamp").Data().(float64))
-	blockHeader.Height = uint32(jsonParsed.Path("header.height").Data().(float64))
-	blockHeader.Nonce = uint32(jsonParsed.Path("header.nonce").Data().(float64))
+	blockHeader.PreviousHash = jsonParsed.Path("result.header.previousHash").Data().(string)
+	blockHeader.TimeStamp = uint32(jsonParsed.Path("result.header.timeStamp").Data().(float64))
+	blockHeader.Height = uint32(jsonParsed.Path("result.header.height").Data().(float64))
+	blockHeader.Nonce = uint32(jsonParsed.Path("result.header.nonce").Data().(float64))
 
 	return blockHeader, nil
 }
