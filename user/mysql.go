@@ -177,15 +177,19 @@ func (db *DB) DeleteAccountInfo(address string) error {
 
 func (db *DB) GetBestBlock() (*Block, error) {
 	block := &Block{}
+	var height uint32
 	sqlstr := "SELECT i_height FROM t_mainchain order by i_height desc limit 1"
 	row := db.sqlDB.QueryRow(sqlstr)
-	err := row.Scan(&block.Header.Height)
+	err := row.Scan(&height)
 	if err == sql.ErrNoRows {
+		fmt.Println("no row")
 		return nil, nil
 	}
 	if err != nil {
+		fmt.Println(err)
 		return nil, err
 	}
+	block.Header.Height = height
 	return block, nil
 }
 
