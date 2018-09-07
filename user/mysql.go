@@ -390,7 +390,7 @@ func (db *DB) getTxIDs(tName string, addressRow string) (string, error) {
 }
 
 func (db *DB) getTxByID(id uint64) (*Transaction, error) {
-	sqlStr := fmt.Sprintf("select s_hash,s_from_addr,s_to_addr,s_value,s_fee,i_nonce,i_height,i_created from %s where id=%d ", "t_txs", id)
+	sqlStr := fmt.Sprintf("select s_hash,s_from_addr,s_to_addr,s_value,i_fee,i_nonce,i_height,i_created from %s where id=%d ", "t_txs", id)
 	row := db.sqlDB.QueryRow(sqlStr)
 
 	tx := &Transaction{}
