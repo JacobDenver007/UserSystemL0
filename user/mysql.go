@@ -29,7 +29,7 @@ type History struct {
 }
 
 func (db *DB) execSQL(sqlStr string) error {
-	log.Debugf("ExecSQL: %s", sqlStr)
+	//log.Debugf("ExecSQL: %s", sqlStr)
 	sqlStrs := strings.Split(sqlStr, ";")
 	tx, err := db.sqlDB.Begin()
 	if err != nil {
