@@ -166,8 +166,8 @@ func (client *RPC) GetBlockTxsByNumber(number uint32) ([]*Transaction, error) {
 		tx := &Transaction{}
 		tx.Data.Sender = child.Path("data.sender").Data().(string)
 		tx.Data.Recipient = child.Path("data.recipient").Data().(string)
-		tx.Data.Amount = big.NewInt(int64(jsonParsed.Path("data.amount").Data().(float64)))
-		tx.Data.Fee = big.NewInt(int64(jsonParsed.Path("data.fee").Data().(float64)))
+		tx.Data.Amount = big.NewInt(int64(child.Path("data.amount").Data().(float64)))
+		tx.Data.Fee = big.NewInt(int64(child.Path("data.fee").Data().(float64)))
 		tx.Data.AssetID = uint32(child.Path("data.assetid").Data().(float64))
 		tx.Data.Type = uint32(child.Path("data.type").Data().(float64))
 		tx.Data.CreateTime = uint32(child.Path("data.createTime").Data().(float64))
