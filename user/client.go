@@ -117,7 +117,7 @@ func (client *RPC) GetBlockByNumber(number uint32) (*Block, error) {
 func (client *RPC) GetBlockHeaderByNumber(number uint32) (*BlockHeader, error) {
 	t := time.Now()
 	defer func() {
-		log.Debugf("GetBlockHeaderByNumber %s elpase: %s\n", number, time.Now().Sub(t))
+		log.Debugf("GetBlockHeaderByNumber %d elpase: %s\n", number, time.Now().Sub(t))
 	}()
 
 	request := common.NewRPCRequest("2.0", methodGetBlockHeaderByNumber, number)
@@ -144,7 +144,7 @@ func (client *RPC) GetBlockTxsByNumber(number uint32) ([]*Transaction, error) {
 	t := time.Now()
 	cnt := int64(0)
 	defer func() {
-		log.Debugf("GetBlockTxsByNumber %s elpase: %s, txs: %d\n", number, time.Now().Sub(t), cnt)
+		log.Debugf("GetBlockTxsByNumber %s elpase: %d, txs: %d\n", number, time.Now().Sub(t), cnt)
 	}()
 
 	param := make(map[string]uint32, 0)

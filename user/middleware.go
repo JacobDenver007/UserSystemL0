@@ -122,6 +122,10 @@ func Checklogged() gin.HandlerFunc {
 			return
 		}
 
+		if strings.EqualFold(c.Request.RequestURI, "/gethistoryinfo") {
+			c.Next()
+			return
+		}
 		//auth
 		h := c.GetHeader("Authorization")
 		if !strings.HasPrefix(h, "Bearer ") {

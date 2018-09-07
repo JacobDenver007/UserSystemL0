@@ -140,6 +140,7 @@ func Scanning(startHeight *big.Int, endHeight *big.Int) {
 		block, err := RPCClient.GetBlockByNumber(fromNumber)
 		if err != nil {
 			log.Errorf("[Scanning] GetBlockByNumber %d--- %s", fromNumber, err)
+			time.Sleep(time.Duration(1))
 			continue
 		}
 		if block == nil || reflect.ValueOf(block).IsNil() {
