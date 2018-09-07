@@ -87,8 +87,7 @@ func (client *RPC) GetBlockNumber() (uint32, error) {
 		log.Debugf("GetBlockNumber elpase: %s\n", time.Now().Sub(t))
 	}()
 
-	param := make([]uint32, 0)
-	request := common.NewRPCRequest("2.0", methodGetBlockNumber, param)
+	request := common.NewRPCRequest("2.0", methodGetBlockNumber)
 
 	jsonParsed, err := common.SendRPCRequst(client.rpchost, request)
 	if err != nil {
@@ -121,8 +120,7 @@ func (client *RPC) GetBlockHeaderByNumber(number uint32) (*BlockHeader, error) {
 		log.Debugf("GetBlockHeaderByNumber %s elpase: %s\n", number, time.Now().Sub(t))
 	}()
 
-	param := []uint32{number}
-	request := common.NewRPCRequest("2.0", methodGetBlockHeaderByNumber, param)
+	request := common.NewRPCRequest("2.0", methodGetBlockHeaderByNumber, number)
 
 	jsonParsed, err := common.SendRPCRequst(client.rpchost, request)
 	if err != nil {
@@ -149,7 +147,11 @@ func (client *RPC) GetBlockTxsByNumber(number uint32) ([]*Transaction, error) {
 		log.Debugf("GetBlockTxsByNumber %s elpase: %s, txs: %d\n", number, time.Now().Sub(t), cnt)
 	}()
 
-	request := common.NewRPCRequest("2.0", methodGetBlockTxsByNumber, number)
+	param := make(map[string]uint32, 0)
+	param["BlockNumber"] = number
+	param["TxType"] = 0
+
+	request := common.NewRPCRequest("2.0", methodGetBlockTxsByNumber, param)
 
 	jsonParsed, err := common.SendRPCRequst(client.rpchost, request)
 	if err != nil {
